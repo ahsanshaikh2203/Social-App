@@ -6,7 +6,12 @@ export const config = {
   mediaRoot: process.env.MEDIA_ROOT ?? "./media",
   maxImageSizeMb: Number(process.env.MAX_IMAGE_SIZE_MB ?? 10),
   maxVideoSizeMb: Number(process.env.MAX_VIDEO_SIZE_MB ?? 50),
-  frontendOrigin: process.env.FRONTEND_ORIGIN ?? "http://localhost:5173",
-  secureCookie: (process.env.SECURE_COOKIE ?? "false").toLowerCase() === "true",
+  frontendOrigin:
+    process.env.FRONTEND_ORIGIN ??
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : "http://localhost:5173"),
+  secureCookie:
+    (process.env.SECURE_COOKIE ?? "false").toLowerCase() === "true",
   port: Number(process.env.PORT ?? 8000),
 };

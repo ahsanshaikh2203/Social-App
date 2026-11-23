@@ -192,6 +192,44 @@ Choose one of the following setup methods.
 - npm 10 or later
 - PostgreSQL 16 or compatible local PostgreSQL instance
 
+## Vercel deployment
+
+The repository uses Vercel Services. The `backend` service builds from `backend/` and the `frontend` service builds from `frontend/`.
+
+Public routes:
+
+- `/api/*` routes to the backend
+- `/ws` routes to the backend
+- `/` and other paths route to the frontend
+
+No service bindings are required because the frontend uses same-origin `/api` and `/ws` URLs.
+
+Configure these environment variables for the Vercel project:
+
+- `DATABASE_URL`
+- `SESSION_SECRET`
+- `SESSION_COOKIE_NAME`
+- `SESSION_TTL_SECONDS`
+- `MEDIA_ROOT`
+- `MAX_IMAGE_SIZE_MB`
+- `MAX_VIDEO_SIZE_MB`
+- `FRONTEND_ORIGIN`
+- `SECURE_COOKIE`
+
+Deploy locally with Vercel Services:
+
+```powershell
+npx vercel@latest dev
+```
+
+Deploy the linked project:
+
+```powershell
+npx vercel@latest deploy
+```
+
+For production deployment, set `DATABASE_URL` to a reachable PostgreSQL database and `FRONTEND_ORIGIN` to the public Vercel domain. Set `SECURE_COOKIE=true` for HTTPS deployments.
+
 ## Quick start with Docker
 
 1. Copy the root environment template:
