@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int             @id @default(autoincrement())
+  username      String          @unique @db.VarChar(30)
+  email         String          @unique @db.VarChar(255)
+  passwordHash  String          @map("password_hash") @db.VarChar(255)
+  createdAt     DateTime        @default(now()) @map("created_at")
+  profile       Profile?
+  posts         Post[]
+  media         Media[]
+  comments      Comment[]
+  likes         Like[]
+  sentRequests  FriendRequest[] @relation("SentFriendRequests")
+  recvRequests  FriendRequest[] @relation("ReceivedFriendRequests")
+  blocked       Block[]         @relation("Blocking")
+  blockedBy     Block[]         @relation("Blocked")
+  notifications Notification[]  @relation("NotificationUser")
+  actedIn       Notification[]  @relation("NotificationActor")
+
+  @@index([username])
+  @@index([email])
+  @@map("users")
+}
+
+model Profile {
+  userId                Int     @id @map("user_id")
+  displayName           String  @map("display_name") @db.VarChar(100)
+  avatarUrl             String? @map("avatar_url") @db.VarChar(500)
+  bio                   String  @default("") @db.Text
+  profileVisibility     String  @default("public") @map("profile_visibility") @db.VarChar(20)
+  defaultPostAudience   String  @default("public") @map("default_post_audience") @db.VarChar(20)
+  friendRequestsEnabled Boolean @default(true) @map("friend_requests_enabled")
+  friendsListVisible    Boolean @default(true) @map("friends_list_visible")
+  user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model Post {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  text      String    @default("") @db.Text
+  audience  String    @default("public") @db.VarChar(20)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  media     Media[]
+  comments  Comment[]
+  likes     Like[]
+
+  @@index([userId])
+  @@index([audience])
+  @@map("posts")
+}
+
+model Media {
+  id        Int    @id @default(autoincrement())
+  postId    Int?   @map("post_id")
+  userId    Int    @map("user_id")
+  filename  String @db.VarChar(255)
+  mediaType String @map("media_type") @db.VarChar(20)
+  mimeType  String @map("mime_type") @db.VarChar(100)
+  size      Int
+  post      Post?  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("media")
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  postId    Int      @map("post_id")
+  userId    Int      @map("user_id")
+  text      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("comments")
+}
+
+model Like {
+  id     Int  @id @default(autoincrement())
+  postId Int  @map("post_id")
+  userId Int  @map("user_id")
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId], map: "uq_post_like")
+  @@index([postId])
+  @@map("likes")
+}
+
+model FriendRequest {
+  id         Int      @id @default(autoincrement())
+  senderId   Int      @map("sender_id")
+  receiverId Int      @map("receiver_id")
+  status     String   @default("pending") @db.VarChar(20)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
+  sender     User     @relation("SentFriendRequests", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User     @relation("ReceivedFriendRequests", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId], map: "uq_friend_request")
+  @@map("friend_requests")
+}
+
+model Block {
+  id        Int  @id @default(autoincrement())
+  blockerId Int  @map("blocker_id")
+  blockedId Int  @map("blocked_id")
+  blocker   User @relation("Blocking", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId], map: "uq_block")
+  @@map("blocks")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  actorId   Int      @map("actor_id")
+  type      String   @db.VarChar(30)
+  link      String   @db.VarChar(500)
+  message   String   @db.VarChar(500)
+  unread    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation("NotificationUser", fields: [userId], references: [id], onDelete: Cascade)
+  actor     User     @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notifications")
+}

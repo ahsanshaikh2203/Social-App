@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-social}
+      POSTGRES_USER: ${POSTGRES_USER:-social}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-social}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-social} -d ${POSTGRES_DB:-social}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://social:social@postgres:5432/social}
+      SESSION_SECRET: ${SESSION_SECRET:-development-secret-change-before-production}
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-social_session}
+      SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-604800}
+      MEDIA_ROOT: ${MEDIA_ROOT:-/app/media}
+      MAX_IMAGE_SIZE_MB: ${MAX_IMAGE_SIZE_MB:-10}
+      MAX_VIDEO_SIZE_MB: ${MAX_VIDEO_SIZE_MB:-50}
+      FRONTEND_ORIGIN: http://localhost:5173
+    volumes:
+      - media_data:/app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      DOCKER_ENV: "true"
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+
+
+volumes:
+  postgres_data:
+  media_data:
